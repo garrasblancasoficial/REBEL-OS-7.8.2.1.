@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GARRAS CORE 2026 | ETERNAL v9.5 FINAL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Montserrat:wght@900&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg: #000; --accent: #fff; --ok: #0f0; --dim: #222; --warn: #ffcc00; --danger: #ff4444;
+            --panel: #050505; --bar-h: 30px;
+        }
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--accent); font-family: 'Share Tech Mono', monospace; overflow: hidden; user-select: none; }
+
+        /* --- SISTEMA DE AUDIO (SIMULADO) --- */
+        audio { display: none; }
+
+        /* --- PANTALLA DE ACCESO TOTAL (DUAL MODE) --- */
+        #auth-gateway {
+            position: fixed; inset: 0; z-index: 200000;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gateway-card {
+            width: 350px; padding: 40px; border: 1px solid var(--dim);
+            background: #000; text-align: center;
+            box-shadow: 0 0 60px rgba(0,0,0,0.9); position: relative;
+        }
+        .gateway-card::before {
+            content: ''; position: absolute; top: -1px; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, #fff, transparent);
+        }
+        .g-input {
+            width: 100%; background: #000; border: 1px solid var(--dim); color: #fff;
+            padding: 15px; margin: 10px 0; text-align: center; font-size: 14px;
+        }
+        .g-input:focus { border-color: var(--ok); }
+        
+        .g-btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .g-btn {
+            flex: 1; padding: 15px; font-weight: 900; border: none; cursor: pointer;
+            transition: 0.2s; font-family: 'Montserrat', sans-serif; font-size: 10px;
+            letter-spacing: 1px;
+        }
+        .btn-unlock { background: transparent; border: 2px solid #fff; color: #fff; transform: skewX(-10deg); }
+        .btn-unlock:hover { background: #fff; color: #000; box-shadow: 0 0 20px #fff; }
+        
+        .btn-reg { background: #fff; color: #000; transform: skewX(-10deg); }
+        .btn-reg:hover { background: var(--ok); box-shadow: 0 0 20px var(--ok); }
+
+        #auth-msg { font-size: 10px; margin-top: 15px; min-height: 12px; }
+
+        /* --- ESCRITORIO --- */
+        #desktop {
+            display: none; height: calc(100% - 50px); padding: 30px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            grid-template-rows: repeat(auto-fill, 110px); gap: 20px;
+            background-size: cover; background-position: center;
+            opacity: 0; transition: opacity 0.5s;
+        }
+        .icon {
+            display: flex; flex-direction: column; align-items: center;
+            cursor: pointer; text-align: center; transition: 0.2s;
+        }
+        .icon:hover { transform: scale(1.05); filter: drop-shadow(0 0 10px rgba(255,255,255,0.3)); }
+        .icon img { width: 50px; height: 50px; margin-bottom: 5px; }
+        .icon span {
+            font-size: 10px; background: rgba(0,0,0,0.8);
+            padding: 2px 8px; border-radius: 2px; border: 1px solid #1a1a1a;
+            max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* --- VENTANAS (SENTINEL FRAMEWORK) --- */
+        .window {
+            position: absolute; background: #000; border: 1px solid #333;
+            display: none; flex-direction: column; z-index: 10;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.8); overflow: hidden;
+            min-width: 300px; min-height: 200px;
+        }
+        .title-bar {
+            background: #fff; color: #000; padding: 0 12px; height: var(--bar-h);
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: move; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 11px;
+        }
+        .win-body { flex: 1; padding: 0; background: #000; position: relative; overflow: hidden; }
+        .close-btn {
+            background: red; color: #fff; border: none; width: 18px; height: 18px;
+            cursor: pointer; font-weight: bold; font-size: 10px; line-height: 18px;
+        }
+
+        /* --- APPS ESPECÍFICAS --- */
+        .ia-chat { height: 100%; display: flex; flex-direction: column; background: #030303; padding: 10px; }
+        .ia-logs { flex: 1; overflow-y: auto; color: var(--ok); font-size: 12px; margin-bottom: 10px; }
+        .notes-txt { width: 100%; height: 100%; background: #000; color: #fff; border: none; padding: 15px; resize: none; font-family: inherit; font-size: 13px; }
+        .config-layout { display: flex; height: 100%; }
+        .config-side { width: 130px; background: #080808; border-right: 1px solid var(--dim); padding: 10px; }
+        .config-item { font-size: 10px; padding: 8px; cursor: pointer; color: #555; }
+        .config-item.active { color: #fff; border-left: 2px solid #fff; }
+
+        /* --- GOOGLE (FIX OPERA GX) --- */
+        .google-box { padding: 30px; text-align: center; }
+        .search-in { width: 90%; padding: 12px; background: #111; border: 1px solid #333; color: #fff; text-align: center; margin-top: 15px; }
+
+        /* --- STORE --- */
+        .store-item { border: 1px solid #222; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+
+        /* --- TASKBAR --- */
+        .taskbar {
+            position: fixed; bottom: 0; width: 100%; height: 50px;
+            background: rgba(0,0,0,0.95); border-top: 1px solid var(--dim);
+            display: flex; align-items: center; padding: 0 20px; z-index: 100000;
+        }
+        .start-orb {
+            width: 40px; height: 40px; background: #fff; color: #000;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 20px; transform: skewX(-10deg);
+            cursor: pointer; border: none; font-family: 'Montserrat', sans-serif;
+        }
+        #clock { margin-left: auto; font-weight: bold; font-size: 14px; letter-spacing: 1px; }
+
+        @media (max-width: 600px) {
+            .window { width: 96% !important; left: 2% !important; top: 5% !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="snd-boot" src="https://codeskulptor-demos.commondatastorage.googleapis.com/descent/CyborgRoar.mp3"></audio>
+    <audio id="snd-ok" src="https://codeskulptor-demos.commondatastorage.googleapis.com/piston-broken/mario_02.wav"></audio>
+
+    <div id="auth-gateway">
+        <div class="gateway-card">
+            <h1 style="font-family: 'Montserrat'; font-size: 24px; letter-spacing: 6px;">GARRAS CORE</h1>
+            <p style="font-size: 10px; color: #444; margin-bottom: 25px;">SISTEMA DE ACCESO v9.5 ETERNAL</p>
+            <input type="password" id="g-key" class="g-input" placeholder="FIRMA_CLAVE">
+            <div class="g-btn-group">
+                <button class="g-btn btn-unlock" onclick="coreAuth('unlock')">DESBLOQUEAR SESIÓN</button>
+                <button class="g-btn btn-reg" onclick="coreAuth('register')">CREAR PERFIL</button>
+            </div>
+            <div id="auth-msg"></div>
+        </div>
+    </div>
+
+    <div id="desktop">
+        <div class="icon" onclick="openW('win-ia')"><img src="https://cdn-icons-png.flaticon.com/512/2103/2103633.png"><span>GARRAS_IA</span></div>
+        <div class="icon" onclick="openW('win-google')"><img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png"><span>GOOGLE</span></div>
+        <div class="icon" onclick="openW('win-notes')"><img src="https://cdn-icons-png.flaticon.com/512/2965/2965333.png"><span>BUNKER_NOTES</span></div>
+        <div class="icon" onclick="openW('win-store')"><img src="https://cdn-icons-png.flaticon.com/512/3382/3382703.png"><span>STORE</span></div>
+        <div class="icon" onclick="openW('win-config')"><img src="https://cdn-icons-png.flaticon.com/512/3938/3938457.png"><span>ARQUITECTO</span></div>
+        <div id="dynamic-apps" style="display:contents;"></div>
+    </div>
+
+    <div class="window" id="win-ia" style="width: 450px; height: 350px; top: 60px; left: 60px;">
+        <div class="title-bar" onmousedown="dragW(event, 'win-ia')"><span>GARRAS_IA_ENGINE_v9.5</span><button class="close-btn" onclick="closeW('win-ia')">X</button></div>
+        <div class="win-body">
+            <div class="ia-chat">
+                <div class="ia-logs" id="ia-box">> KERNEL V9.5 ONLINE.<br>> FIRMA GARRAS_2026 DETECTADA.<br>> SISTEMA PROTEGIDO POR SENTINEL.<br>> ESPERANDO COMANDOS...</div>
+                <input type="text" id="ia-in" class="g-input" style="text-align:left; border:none; background:#000;" placeholder="CMD_">
+            </div>
+        </div>
+    </div>
+
+    <div class="window" id="win-notes" style="width: 400px; height: 350px; top: 100px; left: 100px;">
+        <div class="title-bar" onmousedown="dragW(event, 'win-notes')"><span>BUNKER_NOTES</span><button class="close-btn" onclick="closeW('win-notes')">X</button></div>
+        <div class="win-body"><textarea id="n-txt" class="notes-txt" oninput="db.saveN(this.value)" placeholder="Escribe tus códigos Saúl..."></textarea></div>
+    </div>
+
+    <div class="window" id="win-google" style="width: 650px; height: 450px; top: 50px; left: 120px;">
+        <div class="title-bar" onmousedown="dragW(event, 'win-google')"><span>GOOGLE_SEARCH_v2</span><button class="close-btn" onclick="closeW('win-google')">X</button></div>
+        <div class="win-body" style="background:#fff;">
+            <div class="google-box">
+                <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" width="120"><br>
+                <input type="text" id="g-search" class="search-in" style="color:#000;" placeholder="Buscar en la red..." onkeydown="if(event.key==='Enter') searchG()">
+                <p style="font-size:10px; color:#666; margin-top:15px;">Resultados se abrirán en pestaña nueva (Opera GX Secure Mode).</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="window" id="win-store" style="width: 420px; height: 400px; top: 140px; left: 160px;">
+        <div class="title-bar" onmousedown="dragW(event, 'win-store')"><span>REBEL_STORE_v9.5</span><button class="close-btn" onclick="closeW('win-store')">X</button></div>
+        <div class="win-body" style="padding:15px; background:#050505;">
+            <div class="store-item">
+                <span><img src="https://cdn-icons-png.flaticon.com/512/2111/2111370.png" width="20"> DISCORD</span>
+                <button onclick="db.install('Discord', 'https://cdn-icons-png.flaticon.com/512/2111/2111370.png', 'https://discord.com')" style="font-size:10px; padding:5px;">INSTALAR</button>
+            </div>
+            <div class="store-item">
+                <span><img src="https://cdn-icons-png.flaticon.com/512/5968/5968814.png" width="20"> STEAM</span>
+                <button onclick="db.install('Steam', 'https://cdn-icons-png.flaticon.com/512/5968/5968814.png', 'https://store.steampowered.com')" style="font-size:10px; padding:5px;">INSTALAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="window" id="win-config" style="width: 380px; height: 300px; top: 200px; left: 200px;">
+        <div class="title-bar" onmousedown="dragW(event, 'win-config')"><span>ARQUITECTO</span><button class="close-btn" onclick="closeW('win-config')">X</button></div>
+        <div class="win-body">
+            <div class="config-layout">
+                <div class="config-side">
+                    <div class="active">SEGURIDAD</div>
+                    <div>SISTEMA</div>
+                </div>
+                <div style="padding:15px; flex:1;">
+                    <h4 style="margin:0; font-size:12px;">SENTINEL v9.5</h4>
+                    <p style="font-size:10px; color:var(--ok);">INTEGRIDAD DB: 100% OK</p>
+                    <hr style="border:0; border-top:1px solid #222; margin:10px 0;">
+                    <button onclick="db.wipe()" style="background:none; border:1px solid red; color:red; width:100%; padding:8px; font-size:10px; cursor:pointer;">FORMATEAR KERNEL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dynamic-wins"></div>
+
+    <div class="taskbar">
+        <button class="start-orb" onclick="alert('KERNEL GARRAS_CORE V9.5 ONLINE')">G</button>
+        <div style="margin-left:15px; font-size:11px; color:#666;" id="kernel-tag">GARRAS_2026</div>
+        <div id="clock">00:00:00</div>
+    </div>
+
+    <script>
+        // --- MOTOR DE PERSISTENCIA (LOCAL DATABASE) ---
+        const db = {
+            prefix: 'saul_garras_v9_5_',
+            save: (key, val) => localStorage.setItem(db.prefix + key, JSON.stringify(val)),
+            load: (key) => JSON.parse(localStorage.getItem(db.prefix + key)) || null,
+            
+            checkProfile: (key) => {
+                const profiles = db.load('profiles') || [];
+                return profiles.find(p => p.key === key);
+            },
+            
+            createProfile: (key) => {
+                let profiles = db.load('profiles') || [];
+                if(!profiles.find(p => p.key === key)) {
+                    profiles.push({key, created: Date.now()});
+                    db.save('profiles', profiles);
+                    return true;
+                }
+                return false;
+            },
+
+            install: (name, img, url) => {
+                let apps = db.load('installed_apps') || [];
+                if(!apps.find(a => a.name === name)) {
+                    apps.push({name, img, url});
+                    db.save('installed_apps', apps);
+                    renderDynamicApps();
+                    document.getElementById('snd-ok').play();
+                } else { alert("App ya instalada."); }
+            },
+
+            saveN: (txt) => db.save('notes', txt),
+            wipe: () => { if(confirm("¿RESET TOTAL DEL KERNEL? Se perderá todo.")) { localStorage.clear(); location.reload(); } }
+        };
+
+        // --- MANEJO DE AUTENTICACIÓN DUAL (V6 STYLE) ---
+        function coreAuth(mode) {
+            const key = document.getElementById('g-key').value.toLowerCase();
+            const msg = document.getElementById('auth-msg');
+            msg.innerText = "...";
+
+            if(!key.includes('garras')) {
+                msg.style.color = "red";
+                msg.innerText = "FIRMA RECHAZADA. ID INVÁLIDO.";
+                return;
+            }
+
+            if(mode === 'unlock') {
+                if(db.checkProfile(key)) {
+                    msg.style.color = "var(--ok)";
+                    msg.innerText = "DESBLOQUEANDO BÚNKER... OK";
+                    setTimeout(bootOS, 1200);
+                } else {
+                    msg.style.color = "red";
+                    msg.innerText = "PERFIL NO ENCONTRADO. CREA UNO NUEVO.";
+                }
+            } else if(mode === 'register') {
+                if(db.createProfile(key)) {
+                    msg.style.color = "var(--ok)";
+                    msg.innerText = "NUEVO PERFIL CREADO CON ÉXITO.";
+                    setTimeout(() => { alert("Perfil Creado. Usa Desbloquear para entrar."); }, 800);
+                } else {
+                    msg.style.color = "red";
+                    msg.innerText = "PERFIL YA EXISTENTE. USA DESBLOQUEAR.";
+                }
+            }
+        }
+
+        // --- ARRANQUE DEL SISTEMA ---
+        function bootOS() {
+            document.getElementById('snd-boot').play();
+            document.getElementById('auth-gateway').style.display = 'none';
+            const desk = document.getElementById('desktop');
+            desk.style.display = 'grid';
+            setTimeout(() => { desk.style.opacity = '1'; }, 100);
+            document.getElementById('kernel-tag').innerText = "GARRAS_CORE_v9.5 [ACTIVE]";
+            
+            // Cargar Datos
+            document.getElementById('n-txt').value = db.load('notes') || "";
+            renderDynamicApps();
+        }
+
+        // --- GESTIÓN DE APPS DINÁMICAS ---
+        function renderDynamicApps() {
+            const apps = db.load('installed_apps') || [];
+            const iconCont = document.getElementById('dynamic-apps');
+            const winCont = document.getElementById('dynamic-wins');
+            iconCont.innerHTML = ""; winCont.innerHTML = "";
+            apps.forEach(app => {
+                const id = `win-${app.name.toLowerCase()}`;
+                iconCont.innerHTML += `<div class="icon" onclick="openW('${id}')"><img src="${app.img}"><span>${app.name}</span></div>`;
+                winCont.innerHTML += `
+                    <div class="window" id="${id}" style="width: 550px; height: 400px; top: 100px; left: 100px;">
+                        <div class="title-bar" onmousedown="dragW(event, '${id}')"><span>${app.name}</span><button class="close-btn" onclick="closeW('${id}')">X</button></div>
+                        <div class="win-body"><iframe src="${app.url}" style="width:100%; height:100%; border:none; background:#fff;"></iframe></div>
+                    </div>`;
+            });
+        }
+
+        // --- CONTROLES DE VENTANA ---
+        function openW(id) {
+            const w = document.getElementById(id);
+            w.style.display = 'flex';
+            w.style.zIndex = Math.floor(Date.now() / 10000);
+        }
+        function closeW(id) { document.getElementById(id).style.display = 'none'; }
+        function searchG() { window.open(`https://www.google.com/search?q=${document.getElementById('g-search').value}`, '_blank'); }
+
+        // --- DRAG SYSTEM ---
+        let targetW = null, ox=0, oy=0;
+        function dragW(e, id) {
+            targetW = document.getElementById(id);
+            ox = e.clientX - targetW.offsetLeft; oy = e.clientY - targetW.offsetTop;
+            document.onmousemove = (ev) => {
+                if(targetW) {
+                    targetW.style.left = (ev.clientX - ox) + 'px';
+                    targetW.style.top = (ev.clientY - oy) + 'px';
+                }
+            };
+            document.onmouseup = () => { targetW = null; };
+        }
+
+        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+    </script>
+</body>
+</html>
